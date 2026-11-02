@@ -25,7 +25,11 @@ def main() -> None:
     }
 
     recommendations = recommend_songs(user_prefs, songs, k=5)
+    print_recommendations(user_prefs, recommendations)
 
+
+def print_recommendations(user_prefs: dict, recommendations: list) -> None:
+    """Print a profile summary and the ranked recommendations with their reasons."""
     print(
         f"\nUser profile: genre={user_prefs['favorite_genre']}, mood={user_prefs['favorite_mood']}, "
         f"target_energy={user_prefs['target_energy']:.2f}, likes_acoustic={user_prefs['likes_acoustic']}"

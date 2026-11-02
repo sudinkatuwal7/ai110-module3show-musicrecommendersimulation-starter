@@ -163,3 +163,58 @@ I reviewed the chill-lofi user profile and compared it conceptually with an inte
 I reviewed the terminal output from `python -m src.main` and confirmed that the program loaded 20 songs and displayed five ranked recommendations. I checked that the highest-scoring songs appeared first and that the recommendations matched the pop/happy user profile. I also reviewed the reported test results of 18 passed tests.
 
 **Files changed in Phase 3:** `src/recommender.py`, `src/main.py`, `tests/test_recommender.py`, `README.md`, `model_card.md`, `ai_interactions.md`. `data/songs.csv` and `requirements.txt` were not changed in Phase 3.
+
+---
+
+## Phase 4 Evaluation Session (Claude Code)
+
+> A record of AI-assisted evaluation in Phase 4: stress-testing profiles, analyzing rankings, a weight-shift experiment, and documenting bias.
+
+**Prompt (summarized):** Complete Phase 4 Steps 1–5 in one pass:
+- Run three main profiles (High-Energy Pop, Chill Lofi Study, Intense Rock Workout) plus an adversarial profile through the real recommender.
+- Analyze accuracy and surprises, and explain a #1 result mathematically.
+- Run one weight experiment (genre 0.175, energy 0.50, normalized by 1.075) without permanently changing the default weights.
+- Complete the model card's Limitations and Bias and Evaluation sections from actual output.
+- Do not start Phase 5, add bonus features, or commit.
+
+**How AI helped design the profiles:** Profiles A–C were given in the prompt. Claude used the suggested adversarial profile (rock / sad / energy 0.95 / acoustic) and explained from the dataset why it conflicts: the catalog's sad songs are calm and acoustic, its rock songs are loud and electronic, and no song is both rock and sad.
+
+**How AI helped analyze the rankings:**
+- Claude ran all profiles through `recommend_songs()` and checked each observation against the output and `data/songs.csv`.
+- It identified repeated artists, genre-only matches, the score "cliffs" once exact matches run out, songs shared across profiles, and the cross-profile ranks used in the pairwise comparisons (from full 20-song rankings).
+- It explained Beat It's #1 score for profile C component by component (0.3500 + 0.3000 + 0.2450 + 0.0960 = 0.9910).
+
+**How the weight experiment was run:**
+- `score_song()` and `recommend_songs()` gained an optional `weights` argument. When it is omitted, they use `DEFAULT_WEIGHTS` (0.35 / 0.30 / 0.25 / 0.10), so the normal app is unchanged.
+- The experimental weights are passed only by the new `src/evaluate.py`. They are normalized automatically, because the score is already divided by the sum of the weights used.
+- Profile A was the main experiment profile; the same change was also applied to profiles B–D for comparison.
+
+**Commands actually run (by Claude):**
+- `python -m src.evaluate`: exit code 0. The model card's code blocks were copied directly from this run's saved output by a script, not retyped.
+- `python -m src.main`: exit code 0. Its output was compared with the README's Phase 3 sample and is identical apart from line endings.
+- `python -m pytest -q`: 23 passed, 0 failed (18 existing and 5 new).
+- One-off Python checks (not saved to the repository) to get exact tie values, full 20-song rankings for the pairwise comparisons, and the new rank of Love Yourself under the experiment.
+
+**Code and documentation changes:**
+- `src/recommender.py`:
+  - Added `DEFAULT_WEIGHTS` and an optional `weights` argument to `score_song()` and `recommend_songs()`.
+  - Added a "Total divided by …" reason, shown only when custom weights don't sum to 1.
+  - Default scoring is unchanged.
+- `src/main.py`: the printing code was moved into `print_recommendations()` so `src/evaluate.py` can reuse it. The output is unchanged.
+- `src/evaluate.py` (new): the Phase 4 evaluation runner.
+- `tests/test_recommender.py`: 5 new tests. They check that the default weights are unchanged, that passing the defaults explicitly gives identical results, that custom weights are normalized, that a perfect match still scores 1.0, and that an experiment run doesn't affect later default runs. No existing tests were changed.
+- `model_card.md`: sections 6 (Limitations and Bias) and 7 (Evaluation). The instructor prompts are kept as HTML comments.
+- `README.md`: a short "Experiments You Tried" summary with how to run the evaluation.
+
+**Problems encountered and how they were resolved:**
+- **An apparent swap that was really a tie.** The experiment seemed to swap Sorry and Sunrise City at #1. Checking exact values showed both total 1.047 / 1.075, differing only by floating-point rounding (0.9739534883720932 vs. 0.973953488372093). It is documented as a tie, not a genuine ranking change.
+- **A false diff.** The first comparison of `python -m src.main` against the README sample reported every line as different. The cause was Windows line endings in README.md. With line endings ignored, the outputs are identical.
+
+**Decisions:**
+- *Accepted:* passing weights as an argument instead of editing the weight constants, so the default recommender stays stable.
+- *Accepted:* keeping the original weights after the experiment, because the change traded one mismatch for another rather than clearly improving results.
+- *Not done (out of scope):* fixing the ties caused by floating-point rounding, a "no good match" signal, mood families, and an artist-diversity rule. These are noted in the model card as weaknesses only.
+
+**What I verified manually:**
+
+I reviewed the recommendation results for the High-Energy Pop, Chill Lofi Study, and Intense Rock Workout profiles. I compared the rankings and observed how the recommendations changed when the scoring weights were adjusted. I also reviewed the reported test results and confirmed that the evaluation identified limitations such as repeated artists, genre bias, and weak matches.

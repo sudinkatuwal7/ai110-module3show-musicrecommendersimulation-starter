@@ -330,6 +330,22 @@ Use this section to document the experiments you ran. For example:
 - What happened when you added tempo or valence to the score
 - How did your system behave for different types of users
 
+Run the full Phase 4 evaluation with:
+
+```bash
+python -m src.evaluate
+```
+
+It runs four profiles (High-Energy Pop, Chill Lofi Study, Intense Rock Workout, and a deliberately conflicting "sad, very high-energy, acoustic rock" profile), then repeats them with experimental weights. The default app (`python -m src.main`) is unaffected. Full outputs and analysis are in [model_card.md, section 7](model_card.md#7-evaluation). Key findings:
+
+- **Different users get very different lists.** Chill Lofi and Intense Rock share no top-five songs. High-Energy Pop and Intense Rock share three (Gym Hero, Sunrise City, Sorry), because both want energetic, non-acoustic music.
+- **Weight shift (genre 0.35 → 0.175, energy 0.25 → 0.50, normalized by 1.075):**
+  - High-Energy Pop: the slow ballad *Love Yourself* dropped from #5 to #9, and *Beat It* entered at #5. Sorry and Sunrise City became an exact tie for #1.
+  - Chill Lofi: the mood-only match now beats the genre-only match.
+  - Intense Rock and the conflicting profile: their top fives didn't change.
+  - The default weights were kept.
+- **The conflicting profile exposed genre bias.** Two loud, electronic rock songs ranked above every sad song, even though the user asked for sad, acoustic music.
+
 ---
 
 ## Limitations and Risks

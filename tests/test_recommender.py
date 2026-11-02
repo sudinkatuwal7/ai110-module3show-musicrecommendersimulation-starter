@@ -3,7 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from src.recommender import Song, UserProfile, Recommender, load_songs, score_song, recommend_songs
+from src.recommender import (
+    DEFAULT_WEIGHTS, Song, UserProfile, Recommender, load_songs, score_song, recommend_songs,
+)
 
 DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "songs.csv"
 
@@ -219,3 +221,39 @@ def test_load_songs_reads_all_rows_with_numeric_types():
     assert isinstance(songs[0]["id"], int)
     for field in ["energy", "tempo_bpm", "valence", "danceability", "acousticness"]:
         assert isinstance(songs[0][field], float)
+
+
+# --- custom weights (used only by the Phase 4 experiment) ---
+
+EXPERIMENT_WEIGHTS = {"genre": 0.175, "mood": 0.30, "energy": 0.50, "acoustic": 0.10}
+
+
+def test_default_weights_are_unchanged():
+    assert DEFAULT_WEIGHTS == {"genre": 0.35, "mood": 0.30, "energy": 0.25, "acoustic": 0.10}
+
+
+def test_passing_default_weights_matches_no_weights():
+    songs = load_songs(str(DATA_PATH))
+    for song in songs:
+        assert score_song(POP_PREFS, song, DEFAULT_WEIGHTS) == score_song(POP_PREFS, song)
+
+
+def test_custom_weights_are_normalized_by_their_sum():
+    song = make_song(genre="pop", mood="sad", energy=0.6, acousticness=0.2)
+    score, reasons = score_song(POP_PREFS, song, EXPERIMENT_WEIGHTS)
+    expected = (0.175 + 0.50 * 0.8 + 0.10 * 0.8) / 1.075
+    assert score == pytest.approx(expected)
+    assert "Total divided by 1.075 (sum of the weights used)" in reasons
+
+
+def test_custom_weights_keep_perfect_match_at_one():
+    perfect = make_song(genre="pop", mood="happy", energy=0.8, acousticness=0.0)
+    score, _ = score_song(POP_PREFS, perfect, EXPERIMENT_WEIGHTS)
+    assert score == pytest.approx(1.0)
+
+
+def test_custom_weights_do_not_change_later_default_runs():
+    songs = load_songs(str(DATA_PATH))
+    before = recommend_songs(POP_PREFS, songs, k=5)
+    recommend_songs(POP_PREFS, songs, k=5, weights=EXPERIMENT_WEIGHTS)
+    assert recommend_songs(POP_PREFS, songs, k=5) == before

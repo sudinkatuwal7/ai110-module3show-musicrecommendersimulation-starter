@@ -7,6 +7,13 @@ MOOD_WEIGHT = 0.30
 ENERGY_WEIGHT = 0.25
 ACOUSTIC_WEIGHT = 0.10
 
+DEFAULT_WEIGHTS = {
+    "genre": GENRE_WEIGHT,
+    "mood": MOOD_WEIGHT,
+    "energy": ENERGY_WEIGHT,
+    "acoustic": ACOUSTIC_WEIGHT,
+}
+
 @dataclass
 class Song:
     """
@@ -73,27 +80,28 @@ def _normalize_label(value) -> str:
     """Lowercase and trim a genre/mood label so "Pop " matches "pop"."""
     return str(value or "").strip().lower()
 
-def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
+def score_song(user_prefs: Dict, song: Dict, weights: Optional[Dict[str, float]] = None) -> Tuple[float, List[str]]:
     """Score one song from 0 to 1 against user preferences and return (score, reasons)."""
+    w = weights or DEFAULT_WEIGHTS
     reasons = []
     total = 0.0
-    weights_used = GENRE_WEIGHT + MOOD_WEIGHT + ENERGY_WEIGHT
+    weights_used = w["genre"] + w["mood"] + w["energy"]
 
     # Genre and mood: exact match (ignoring case and spaces) or nothing
     favorite_genre = _normalize_label(user_prefs.get("favorite_genre"))
     if favorite_genre and _normalize_label(song["genre"]) == favorite_genre:
-        total += GENRE_WEIGHT
-        reasons.append(f"Genre matches {favorite_genre} (+{GENRE_WEIGHT:.4f})")
+        total += w["genre"]
+        reasons.append(f"Genre matches {favorite_genre} (+{w['genre']:.4f})")
 
     favorite_mood = _normalize_label(user_prefs.get("favorite_mood"))
     if favorite_mood and _normalize_label(song["mood"]) == favorite_mood:
-        total += MOOD_WEIGHT
-        reasons.append(f"Mood matches {favorite_mood} (+{MOOD_WEIGHT:.4f})")
+        total += w["mood"]
+        reasons.append(f"Mood matches {favorite_mood} (+{w['mood']:.4f})")
 
     # Energy: closer to the target is better, not simply higher
     target_energy = float(user_prefs["target_energy"])
     energy_gap = abs(song["energy"] - target_energy)
-    energy_points = ENERGY_WEIGHT * (1 - energy_gap)
+    energy_points = w["energy"] * (1 - energy_gap)
     total += energy_points
     reasons.append(
         f"Energy {song['energy']:.2f} is {energy_gap:.2f} from target {target_energy:.2f} (+{energy_points:.4f})"
@@ -103,9 +111,9 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
     likes_acoustic = user_prefs.get("likes_acoustic")
     if likes_acoustic is not None:
         acoustic_target = 1.0 if likes_acoustic else 0.0
-        acoustic_points = ACOUSTIC_WEIGHT * (1 - abs(song["acousticness"] - acoustic_target))
+        acoustic_points = w["acoustic"] * (1 - abs(song["acousticness"] - acoustic_target))
         total += acoustic_points
-        weights_used += ACOUSTIC_WEIGHT
+        weights_used += w["acoustic"]
         preference = "acoustic" if likes_acoustic else "non-acoustic"
         reasons.append(
             f"Acousticness {song['acousticness']:.2f} vs {preference} preference (+{acoustic_points:.4f})"
@@ -113,13 +121,19 @@ def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
     else:
         reasons.append(f"No acoustic preference, so score is divided by {weights_used:.2f}")
 
+    # Custom weights that don't sum to 1 are normalized the same way
+    if likes_acoustic is not None and abs(weights_used - 1.0) > 1e-9:
+        reasons.append(f"Total divided by {weights_used:.3f} (sum of the weights used)")
+
     return total / weights_used, reasons
 
-def recommend_songs(user_prefs: Dict, songs: List[Dict], k: int = 5) -> List[Tuple[Dict, float, str]]:
+def recommend_songs(
+    user_prefs: Dict, songs: List[Dict], k: int = 5, weights: Optional[Dict[str, float]] = None
+) -> List[Tuple[Dict, float, str]]:
     """Score every song, sort by score (ties: lowest id first), and return the top k."""
     scored = []
     for song in songs:
-        score, reasons = score_song(user_prefs, song)
+        score, reasons = score_song(user_prefs, song, weights)
         scored.append((song, score, "; ".join(reasons)))
 
     ranked = sorted(scored, key=lambda item: (-item[1], item[0]["id"]))

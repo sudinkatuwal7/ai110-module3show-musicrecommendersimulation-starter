@@ -11,7 +11,7 @@ Your goal is to:
 - Evaluate what your system gets right and wrong
 - Reflect on how this mirrors real world AI recommenders
 
-Replace this paragraph with your own summary of what your version does.
+**This version** is a content-based recommender written in plain Python. It loads a 20-song catalog from `data/songs.csv` and scores every song against one listener's profile (favorite genre, favorite mood, target energy, and optionally whether they like acoustic music). The scoring uses fixed weights: genre 0.35, mood 0.30, energy 0.25, acousticness 0.10. It prints the top five songs, each with a score and a line-by-line explanation of how that score was earned. An evaluation script tests four listener profiles, including a deliberately conflicting one, and runs a weight-change experiment. The [model card](model_card.md) documents what works, what doesn't, and why.
 
 ---
 
@@ -259,6 +259,14 @@ pip install -r requirements.txt
 python -m src.main
 ```
 
+4. Run the evaluation (four profiles plus the weight experiment):
+
+```bash
+python -m src.evaluate
+```
+
+Run every command from the project's root folder so the `src` package and `data/songs.csv` are found.
+
 ### Running Tests
 
 Run the starter tests with:
@@ -266,6 +274,8 @@ Run the starter tests with:
 ```bash
 pytest
 ```
+
+(`python -m pytest` also works and uses the active virtual environment's Python.)
 
 You can add more tests in `tests/test_recommender.py`.
 
@@ -360,6 +370,15 @@ Examples:
 
 You will go deeper on this in your model card.
 
+Limitations of this recommender, all observed in the Phase 4 evaluation (details in [model_card.md, section 6](model_card.md#6-limitations-and-bias)):
+
+- **Genre bias:** a genre match alone is worth 0.35, so a slow ballad made the high-energy pop top five, and loud rock beat every sad song for a "sad acoustic rock" listener.
+- **Exact matching:** related moods (`chill` / `relaxed` / `focused`) and genres (`indie pop` / `pop`) get no credit for each other.
+- **Repeated artists:** nothing stops one artist from filling several spots in the top five.
+- **Tiny, estimated catalog:** 20 songs with hand-assigned attributes. Once the real matches run out, the remaining picks are weak filler.
+- **No "nothing fits" warning:** the system returns five songs even when the best score is low.
+- **No understanding of lyrics or language:** it only sees the four numeric and label features.
+
 ---
 
 ## Reflection
@@ -372,6 +391,10 @@ Write 1 to 2 paragraphs here about what you learned:
 
 - about how recommenders turn data into predictions
 - about where bias or unfairness could show up in systems like this
+
+The most interesting thing I learned from this project was how recommendation systems can produce biased or unexpected results. I was surprised that a song could rank highly because its genre matched, even when its energy level was not what the user wanted. This showed me how much the scoring weights influence recommendations.
+
+AI helped me test different user profiles and understand unexpected results. I also ran the recommender myself and checked its top-five recommendations. This project taught me that recommendation systems need both a scoring algorithm and proper evaluation to produce useful results.
 
 
 

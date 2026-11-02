@@ -2,8 +2,12 @@
 
 ## 1. Model Name  
 
-Give your model a short, descriptive name.  
-Example: **VibeFinder 1.0**  
+<!--
+Give your model a short, descriptive name.
+Example: **VibeFinder 1.0**
+-->
+
+**VibeScore 1.0**, a content-based music recommender that scores each song in a 20-song catalog against one listener's taste and returns a ranked top five with explanations. *(You can rename it; the name is only a label.)*
 
 ---
 
@@ -50,32 +54,60 @@ Genre and mood are worth the most because together they capture a song's overall
 
 **Why it explains itself.** Each recommendation lists the points it earned, for example "Mood matches happy (+0.3000)". The explanation is built from the same numbers as the score, so it never claims a match that didn't happen, and you can see exactly why one song beat another.
 
-**Changes from the starter logic.** The starter code returned the first few songs unscored. Now every song is scored, ranked and explained. The example listener in `src/main.py` was changed to use the same preference names as the `UserProfile` (favorite genre, favorite mood, target energy, likes acoustic).
+**Changes from the starter logic.** The starter code returned the first few songs unscored. Now every song is scored, ranked and explained. The example listener in `src/main.py` was changed to use the same preference names as the `UserProfile` (favorite genre, favorite mood, target energy, likes acoustic). For the Phase 4 experiment, the scoring can also take a different set of weights for a single run. The normal app always uses the four weights above.
 
 ---
 
 ## 4. Data  
 
-Describe the dataset the model uses.  
+<!--
+Describe the dataset the model uses.
+Prompts:
+- How many songs are in the catalog
+- What genres or moods are represented
+- Did you add or remove data
+- Are there parts of musical taste missing in the dataset
+-->
 
-Prompts:  
+**Size and source.** `data/songs.csv` has **20 songs** by 13 artists. Songs 1–10 came with the starter project and use fictional artists. Songs 11–20 were added in Phase 1: two songs each by J. Cole, Justin Bieber, Michael Jackson, Narayan Gopal and Purna Rai. They were added to bring the catalog up to the required size and to add more genres, more moods, sadder songs, and more mid-energy songs. No songs were removed.
 
-- How many songs are in the catalog  
-- What genres or moods are represented  
-- Did you add or remove data  
-- Are there parts of musical taste missing in the dataset  
+**Columns.** Each song has `id`, `title`, `artist`, `genre`, `mood`, `energy`, `tempo_bpm`, `valence`, `danceability` and `acousticness`. The model uses only genre, mood, energy and acousticness.
+
+**What's represented.**
+
+| | Values (number of songs) |
+|---|---|
+| Genres (11) | pop 4, lofi 3, rock 2, hip hop 2, nepali classic 2, nepali folk 2, ambient 1, jazz 1, synthwave 1, indie pop 1, funk 1 |
+| Moods (10) | happy 3, chill 3, intense 3, moody 2, reflective 2, sad 2, romantic 2, relaxed 1, focused 1, groovy 1 |
+| Ranges | energy 0.25–0.93, acousticness 0.03–0.92, valence 0.18–0.84, tempo 60–152 BPM |
+
+**Important caveat.** All attribute values are **hand-assigned estimates**, not measurements from an audio-analysis service. Values for the real songs were estimated from each song's general style.
+
+**What's missing.**
+- Most genres and moods have only one or two songs.
+- No song is both sad and high-energy.
+- There are no lyrics, language, release year or popularity data.
+- There is no listening history from real users, so the model cannot learn taste the way streaming apps do.
 
 ---
 
 ## 5. Strengths  
 
-Where does your system seem to work well  
+<!--
+Where does your system seem to work well
+Prompts:
+- User types for which it gives reasonable results
+- Any patterns you think your scoring captures correctly
+- Cases where the recommendations matched your intuition
+-->
 
-Prompts:  
-
-- User types for which it gives reasonable results  
-- Any patterns you think your scoring captures correctly  
-- Cases where the recommendations matched your intuition  
+- **It matches clear tastes well.** When the listener's genre and mood both exist in the catalog, the top two results match on genre, mood and energy every time. The scores were 0.966–0.991 for the High-Energy Pop, Chill Lofi Study and Intense Rock Workout profiles (section 7).
+- **Weighted features balance several preferences.** Rather than filtering on one rule, each song gets partial credit across four features. A song that misses on genre can still rank well if its mood and energy fit, like *Rooftop Lights* at #4 for the pop profile.
+- **Closeness, not "more is better".** Energy is scored by how *near* it is to the target, so a calm listener gets calm songs. All five Chill Lofi picks have energy 0.28–0.42.
+- **It always gives a ranked list.** Every song is scored, then sorted from best to worst, so the user always sees an ordered top five.
+- **Every recommendation explains itself.** Each result lists the points it earned for each feature. The parts always add up to the score, so anyone can check a ranking by hand (see the Beat It example in section 7).
+- **The results are repeatable.** The same profile always gives the same list, and ties are broken by song ID, so results don't change between runs.
+- **It's safe to experiment with.** A different set of weights can be tried for one run (the Phase 4 experiment) without changing the default weights. Tests check that the defaults stay at 0.35 / 0.30 / 0.25 / 0.10.
 
 ---
 
@@ -370,23 +402,42 @@ Same weight change applied to every profile (top 5 titles):
 
 ## 8. Future Work  
 
-Ideas for how you would improve the model next.  
+<!--
+Ideas for how you would improve the model next.
+Prompts:
+- Additional features or preferences
+- Better ways to explain recommendations
+- Improving diversity among the top results
+- Handling more complex user tastes
+-->
 
-Prompts:  
+None of these are implemented. They are possible next steps, each tied to a weakness found in Phase 4.
 
-- Additional features or preferences  
-- Better ways to explain recommendations  
-- Improving diversity among the top results  
-- Handling more complex user tastes  
+- **A bigger, more balanced catalog.** Several songs for every genre and mood would mean fewer weak "filler" picks, like the happy pop songs at #4–5 for the rock profile.
+- **More reliable song features.** Measured audio features from a trusted source would replace the hand-made estimates.
+- **Related moods and genres.** Partial credit for close labels (e.g. `chill` ≈ `relaxed` ≈ `focused`, `indie pop` ≈ `pop`) would stop exact matching from throwing away good matches like *Coffee Shop Stories*.
+- **Avoiding repeated artists.** Allowing at most one song per artist in the top five (re-ranking after scoring) would spread out results like Bieber ×2 and LoRoom ×2.
+- **Detecting weak matches.** The system could warn when even the best score is low (e.g. 0.60 for the adversarial profile) instead of confidently returning five poor fits.
+- **Clear tie handling.** Rounding scores slightly before sorting would let mathematically equal scores fall back to the ID tie-break, instead of tiny floating-point differences deciding the order (seen in the weight experiment).
+- **More features and richer tastes.** Valence and tempo could be used, and listeners could give more than one favorite genre or mood.
+- **User feedback.** Likes and skips could gradually adjust a listener's profile, which moves toward how real streaming apps learn.
 
 ---
 
 ## 9. Personal Reflection  
 
-A few sentences about your experience.  
+<!--
+A few sentences about your experience.
+Prompts:
+- What you learned about recommender systems
+- Something unexpected or interesting you discovered
+- How this changed the way you think about music recommendation apps
+-->
 
-Prompts:  
+Throughout this project, the most interesting thing I learned was how recommendation systems can produce biased or unexpected results. Before testing different user profiles, I did not fully realize how much the scoring weights could influence which songs appeared in the recommendations.
 
-- What you learned about recommender systems  
-- Something unexpected or interesting you discovered  
-- How this changed the way you think about music recommendation apps  
+One thing that surprised me was how a song could rank highly simply because its genre matched the user's preference, even when its energy level was different. For example, *Love Yourself* appeared in the High-Energy Pop recommendations despite having a lower energy level than the user wanted. This helped me understand that a high similarity score does not always mean a recommendation is a perfect match.
+
+AI helped me test different user profiles and analyze unexpected results. It helped me understand why certain songs ranked higher and how the scoring formula influenced the recommendations.
+
+I also ran the recommender myself and checked its top-five recommendations. Overall, this project helped me understand why recommendation systems need careful evaluation instead of relying only on numerical scores.

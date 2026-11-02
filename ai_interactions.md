@@ -218,3 +218,44 @@ I reviewed the terminal output from `python -m src.main` and confirmed that the 
 **What I verified manually:**
 
 I reviewed the recommendation results for the High-Energy Pop, Chill Lofi Study, and Intense Rock Workout profiles. I compared the rankings and observed how the recommendations changed when the scoring weights were adjusted. I also reviewed the reported test results and confirmed that the evaluation identified limitations such as repeated artists, genre bias, and weak matches.
+
+---
+
+## Phase 5 Reflection and Model Card Session (Claude Code)
+
+> A record of AI-assisted documentation work in Phase 5.
+
+**Prompt (summarized):** Complete Phase 5 only:
+- Finish the unfinished model card sections and write Strengths and Future Work from the actual implementation and evaluation.
+- Prepare a personal reflection *template* with placeholders, not an invented reflection.
+- Make sure README.md covers purpose, setup, running the app, the evaluation and the tests.
+- Add this log entry and run the final verification.
+- Do not change code, scoring or data; do not commit.
+
+**What AI generated or changed:**
+- `model_card.md`
+  - Filled section 1 (Model Name: "VibeScore 1.0", marked as renamable), section 4 (Data, with genre and mood counts and value ranges recomputed from `data/songs.csv`), section 5 (Strengths), section 8 (Future Work, every item described as not implemented) and section 9 (a labeled reflection template).
+  - Added one sentence to section 3 about running the experiment with different weights.
+  - Sections 2, 6 and 7 (including all Phase 4 outputs) were not changed. The instructor prompts are kept as HTML comments.
+- `README.md`
+  - Replaced the Project Summary placeholder.
+  - Added a step for `python -m src.evaluate` and a note about `python -m pytest`.
+  - Filled "Limitations and Risks" with the Phase 4 findings.
+  - Added a clearly marked student placeholder under "Reflection".
+  - The Phase 3 sample output and the Phase 4 experiment summary were not changed.
+
+**Decisions:**
+- *The personal reflection was not written by AI.* Claude first added a template with project facts and bracketed prompts. The student then wrote their own reflection for model card section 9 and the README Reflection. Claude pasted those texts in word for word, replacing the template.
+- *Strengths and Future Work were based only on observed evidence.* Each strength cites a Phase 3 or 4 result. Each future idea is tied to a weakness found in Phase 4 and is described as a possibility.
+- *The model name was a suggestion only.* The student can rename it.
+- *No code, tests, data or weights were changed in Phase 5.*
+
+**Commands actually run (by Claude):**
+- A dataset recount with `load_songs()`: 20 songs, 13 artists, 11 genres, 10 moods. The ranges were used in model card section 4.
+- `python -m pytest`, `python -m src.main` and `python -m src.evaluate` (results are in the final verification below).
+- A script checked that every Phase 4 output block in model_card.md still matches a fresh run of `python -m src.evaluate`.
+- `git diff` was reviewed to confirm no earlier-phase content was removed.
+
+**What I verified manually:**
+
+I personally ran the music recommender and reviewed its top-five recommendations. I checked the ranking order and looked at how the recommended songs matched the selected user preferences. I also considered the unexpected results identified during the evaluation, especially how genre matching could influence rankings even when energy levels differed.
